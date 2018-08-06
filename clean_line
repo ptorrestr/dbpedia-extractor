@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+filters=$(cat "filter.txt" | tr '\n' '|')
+
+grep -vE '\"' \
+  | grep -vE $filters \
+  | perl -lpe ';s/http:\/\/dbpedia.org\/resource\//dbpedia:/g' \
+  | perl -lpe ';s/ /\|/g' 

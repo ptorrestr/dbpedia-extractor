@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+
+urldecode() {
+    # urldecode <string>
+    local url_encoded="${1//+/ }"
+    printf '%b' "${url_encoded//%/\\x}"
+}
+export -f urldecode
+
+# 1. keep only dbpedia resources
+# 2. Transform $ into _ to avoid calling variables in later echos
+# 3. Interpret unicode
+# 4. Interpret url encoding
+# 5. list back
+# 6. Replace non-alpha numeric to white space
+# 7. Trim internally
+# 8. Trim externally
+
+awk -F'|' '
+{
+if ($2 ~ "^<dbpedia") {
+  n1 = split($2, s1, "dbpedia:")
+  print $1"|"s1[2]
+}
+else {
+  print $1
+}
+}' \
+  | tr '$' '_' \
+  | xargs -d '\n' -n 1 -I LINE bash -c 'echo -ne "LINE\n"' \
+  | xargs -d '\n' -n 1 -I LINE bash -c 'urldecode "LINE\n"' \
+  | sed 's/[^[:alnum:]|]/ /g' \
+  | sed -E -e 's/[[:blank:]]+/ /g' \
+  | sed -E -e 's/\|[[:blank:]]+/\|/g' \
+  | sed -E -e 's/[[:blank:]]+$//g' \
+  | tr '[:upper:]' '[:lower:]'

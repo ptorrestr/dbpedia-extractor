@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+source $ROOT/miniconda3/bin/activate hdtconnector
+source $ROOT/env/c++/parallel
+source $ROOT/env/c++/lbzip2
+
+hdtSearch -q "? ? ?" $1 2> /dev/null | lbzip2 -zc > $2

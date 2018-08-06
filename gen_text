@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+source $ROOT/env/c++/parallel
+source $ROOT/env/c++/lbzip2
+
+lbzcat $1 \
+  | parallel --pipe -j$(nproc) --round-robin -n 1000 ./get_text_url \
+  | sort 
+  | lbzip2 -zc > $2

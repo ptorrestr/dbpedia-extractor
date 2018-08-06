@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+source $ROOT/env/c++/parallel
+source $ROOT/env/c++/lbzip2
+input="$1"
+filter="filter.txt"
+proc=$(nproc)
+
+#parallel --citation > /dev/null 2>&1
+
+lbzcat $1 \
+  | parallel --pipe -j$(nproc) --round-robin --block 1M ./clean_line \
+  | lbzip2 -zc > $2

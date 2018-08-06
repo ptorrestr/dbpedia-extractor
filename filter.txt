@@ -1,0 +1,7 @@
+http://xmlns.com/foaf/0.1/homepage
+http://dbpedia.org/property/website
+http://dbpedia.org/property/productionWebsite
+http://dbpedia.org/property/url
+http://dbpedia.org/ontology/wikiPageDisambiguates
+http://dbpedia.org/ontology/wikiPageRedirects
+http://dbpedia.org/ontology/webcast
