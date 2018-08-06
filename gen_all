@@ -3,15 +3,17 @@
 #1 triples
 #2 filtered triples
 
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+
 triples=$1
-filered_triples=$2
+filtered_triples=$2
 mapping_nodes=$3
 mapping_rel=$4
 adjacency=$5
 text=$6
 
-./filter $triples $filtered_triples
-./gen_mapping_nodes $filtered_triples $mapping_nodes
-./gen_mapping_relations $filtered_triples $mapping_rel
-./set_ids $filtered_triples $mapping_nodes $mapping_rel $adjacency
-./gen_text $mapping_nodes $text
+$DIR/filter $triples $filtered_triples
+$DIR/gen_mapping_nodes $filtered_triples $mapping_nodes
+$DIR/gen_mapping_relations $filtered_triples $mapping_rel
+$DIR/set_ids $filtered_triples $mapping_nodes $mapping_rel $adjacency
+$DIR/gen_text $mapping_nodes $text

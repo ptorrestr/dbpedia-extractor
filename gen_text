@@ -2,8 +2,9 @@
 
 source $ROOT/env/c++/parallel
 source $ROOT/env/c++/lbzip2
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
 lbzcat $1 \
-  | parallel --pipe -j$(nproc) --round-robin -n 1000 ./get_text_url \
-  | sort 
+  | parallel --pipe -j$(nproc) --round-robin -n 1000 $DIR/get_text_url \
+  | sort -t'|' -n -k 1\
   | lbzip2 -zc > $2

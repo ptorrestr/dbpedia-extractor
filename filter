@@ -4,9 +4,10 @@ source $ROOT/env/c++/lbzip2
 input="$1"
 filter="filter.txt"
 proc=$(nproc)
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
 #parallel --citation > /dev/null 2>&1
 
 lbzcat $1 \
-  | parallel --pipe -j$(nproc) --round-robin --block 1M ./clean_line \
+  | parallel --pipe -j$(nproc) --round-robin --block 1M $DIR/clean_line \
   | lbzip2 -zc > $2
