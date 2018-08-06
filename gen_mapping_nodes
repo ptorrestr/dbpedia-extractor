@@ -12,6 +12,6 @@ lbzcat $1 \
   | LC_ALL=C sort -u --parallel=8 > $temp_file_2
 cat $temp_file_1 $temp_file_2 \
   | LC_ALL=C sort -u --parallel=8 > $temp_file_3
-paste -d'|' <(seq 1 $(wc -l < $temp_file_3)) <(cat $temp_file_3) \
+paste -d'|' <(seq 0 $(wc -l < $temp_file_3)) <(cat $temp_file_3) \
   | lbzip2 -zc > $2
 rm $temp_file_1 $temp_file_2 $temp_file_3

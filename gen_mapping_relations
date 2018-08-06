@@ -5,6 +5,6 @@ temp_file_1=$(mktemp)
 lbzcat $1 \
   | cut -d'|' -f2 \
   | LC_ALL=C sort -u --parallel=8 > $temp_file_1
-paste -d'|' <(seq 1 $(wc -l < $temp_file_1)) <(cat $temp_file_1) \
+paste -d'|' <(seq 0 $(wc -l < $temp_file_1)) <(cat $temp_file_1) \
   | lbzip2 -zc > $2
 rm $temp_file_1
