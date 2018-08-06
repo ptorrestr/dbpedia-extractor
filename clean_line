@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-filters=$(cat "filter.txt" | tr '\n' '|')
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+filters=$(cat "$DIR/filter.txt" | tr '\n' '|')
 
 grep -vE '\"' \
   | grep -vE $filters \

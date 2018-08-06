@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
 input="$1"
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
-filter="$DIR/filter.txt"
-proc=$(nproc)
-
 #parallel --citation > /dev/null 2>&1
 
 lbzcat $1 \
