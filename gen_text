@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-source $ROOT/env/c++/parallel
-source $ROOT/env/c++/lbzip2
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
 lbzcat $1 \

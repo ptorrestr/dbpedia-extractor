@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
-source $ROOT/env/c++/parallel
-source $ROOT/env/c++/lbzip2
 input="$1"
-filter="filter.txt"
-proc=$(nproc)
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+filter="$DIR/filter.txt"
+proc=$(nproc)
 
 #parallel --citation > /dev/null 2>&1
 

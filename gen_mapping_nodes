@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
 
-source $ROOT/env/c++/lbzip2
-source $ROOT/env/c++/parallel
-
 temp_file_1=$(mktemp)
 temp_file_2=$(mktemp)
 temp_file_3=$(mktemp)

@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-source $ROOT/env/c++/lbzip2
-
 temp_file_1=$(mktemp)
 temp_file_2=$(mktemp)
 
