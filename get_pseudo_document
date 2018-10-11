@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+
+# get entity text
+
+prefix="http://dbpedia.org/resource"
+
+entity="${prefix}/$1"
+graph="$2"
+
+hdtSearch -q "$entity ? ?" $graph \
+  | cut --complement -d' ' -f1 \
+  | awk -F ' ' '
+BEGIN{
+  label="http://www.w3.org/2000/01/rdf-schema#label"
+  fields[label] = "label"
+  name="http://xmlns.com/foaf/0.1/name"
+  fields[name] = "name"
+  names["label"] = 1
+  names["name"] = 1
+
+  abstract="http://www.w3.org/2000/01/rdf-schema#comment"
+  fields[abstract] = "abstract"
+  attributes["abstract"] = 1
+  birthname="http://dbpedia.org/ontology/birthName"
+  fields[birthname] = "birthname"
+  attributes["birthname"] = 1
+  pseudonym="http://dbpedia.org/ontology/pseudonym"
+  fields[pseudonym] = "pseudonym"
+  attributes["pseudonym"] = 1
+  seniority="http://dbpedia.org/ontology/seniority"
+  fields[seniority] = "seniority"
+  attributes["seniority"] = 1
+  office="http://dbpedia.org/ontology/office"
+  fields[office] = "office"
+  attributes["office"] = 1
+  description="http://purl.org/dc/elements/1.1/description"
+  fields[description] = "description"
+  attributes["description"] = 1
+  nick="http://xmlns.com/foaf/0.1/nick"
+  fields[nick] = "nick"
+  attributes["nick"] = 1
+  leadertitle="http://dbpedia.org/ontology/leaderTitle"
+  fields[leadertitle]="leadertitle"
+  attributes["leadertitle"] = 1
+  longname="http://dbpedia.org/ontology/longName"
+  fields[longname]="longname"
+  attributes["longname"] = 1
+  motto="http://dbpedia.org/ontology/motto"
+  fields[motto]="motto"
+  attributes["motto"]=1
+  demonym="http://dbpedia.org/ontology/demonym"
+  fields[demonym]="demonym"
+  attributes["demonym"] = 1
+}
+{
+  if (fields[$1]) { 
+    split($0, a, $1)
+    gsub(/^[ \t]+/,"",a[2])
+    split(a[2], b, "@en")
+    c = substr( b[1], 2, length(b[1])-2)
+    d = gsub( "\"", "\\\"", c)
+    if ( map[fields[$1]] != "" ) {
+      map[fields[$1]] = map[fields[$1]] ","c
+    }
+    else {
+      map[fields[$1]] = c
+    }
+  }
+}
+END{
+  print "{"
+  print "\"names\":{"
+  first = 0
+  for (key in names) {
+    if (first > 0) {
+      print ","
+    }
+    else {
+      first = 1
+    }
+    print "\""key"\":\""map[key]"\""
+  }
+  print "},"
+
+  print "\"attributes\":{"
+  first = 0
+  for (key in attributes) {
+    if (first > 0) {
+      print ","
+    }
+    else {
+      first = 1
+    }
+    print "\""key"\":\""map[key]"\""
+  }
+  print "}"
+
+  print "}"
+}
+' \
+  
+#grep "http://www.w3.org/2000/01/rdf-schema#comment"	\		# Keep abstract
+#  | perl -lpe ';s/http:\/\/dbpedia.org\/resource\//dbpedia:/g' \	# change to dbpedia
+#  | perl -lpe ';s/ /\|/g'
