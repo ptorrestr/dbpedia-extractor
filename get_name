@@ -1,20 +1,24 @@
 #!/usr/bin/env bash
 
 prefix="http://dbpedia.org/resource"
-
 graph="$1"
-entity="${prefix}/$2"
+
+entity_id="$(cut -d'|' -f1 <<<"$2")"
+entity_name="$(cut -d'|' -f2 <<<"$2")"
+entity_name="$(cut -d':' -f2 <<<"$entity_name")"
+entity_name="$(tr -d '>' <<<"$entity_name")"
+entity_name="${prefix}/${entity_name}"
 label="http://www.w3.org/2000/01/rdf-schema#label"
 name="http://xmlns.com/foaf/0.1/name"
 
 tmpfile1=$(mktemp)
 tmpfile2=$(mktemp)
 
-hdtSearch -q "$entity $label ?" $graph -o $tmpfile1 1>/dev/null 2>&1
-hdtSearch -q "$entity $name ?" $graph -o $tmpfile2 1>/dev/null 2>&1
+hdtSearch -q "$entity_name $label ?" $graph -o $tmpfile1 1>/dev/null 2>&1
+hdtSearch -q "$entity_name $name ?" $graph -o $tmpfile2 1>/dev/null 2>&1
 cat $tmpfile1 $tmpfile2 \
   | cut --complement -d ' ' -f1 \
-  | awk -F ' ' -v label="$label" -v name="$name" -v entity=$entity '
+  | awk -F ' ' -v label="$label" -v name="$name" -v entity=$entity_id '
 BEGIN{
   m_label = ""
   m_name = ""
@@ -47,3 +51,4 @@ END{
   print entity"|"m_label"|"m_name
 }
 '
+rm $tmpfile1 $tmpfile2
