@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+hdtfile=$1
+mapping=$2
+outfile=$3
+prefix="http://dbpedia.org/resource/"
+label="http://www.w3.org/2000/01/rdf-schema#label"
+name="http://xmlns.com/foaf/0.1/name"
+res="results"
+
+# hdtSearch add some garbage when performing the quiery on stdout. 
+# For now, we need to clean the output manually.
+
+awk -F"|" 'NR==FNR {m[$2]=$1;next};{print m[$1]"|"$2"|"$3}' \
+    <(lbzcat $mapping) \
+    <(lbzcat $mapping \
+      | cut -d '|' -f2 \
+      | cut --complement -d ':' -f1 \
+      | tr -d '>' \
+      | awk -v p=$prefix -v l=$label -v n=$name '{print p $0" "l" ?";print p $0" "n" ?";}' \
+      | parallel --pipe -j4 --round-robin hdtSearch $hdtfile \
+      | awk -F ' ' -v r=$res '{ if ($3 != r && $2 != "Dictionary" && $2 != r) {gsub(">> ", "",$0); print $0 }}' \
+      | awk -F ' ' '{f=$1; s=$2; $1=""; $2="";gsub(/^[ \t]+/, "", $0); print f"|"s"|" $0 }' \
+      | awk -F '|' -v p=$prefix '{gsub(p, "<dbpedia:", $1); print $1">|"$2"|"$3}' ) \
+   | sort -t '|' -n -k 1 \
+   | datamash -t '|' -g 1 collapse 2 collapse 3 \
+   | awk -F"|" -v l=$label -v n=$name '{
+  label = ""
+  name = ""
+  c1 = split($2, a, ",");
+  c2 = split($3, b, "@en");
+  for (i in a) {
+    gsub(/^\,/,"", b[i])
+    if( a[i] == l) {
+      if (label == ""){ label=b[i] }
+      else { label=label ";" b[i]}
+    }
+    else if ( a[i] == n) {
+      if (name == ""){ name=b[i] }
+      else{ name=name ";" b[i]}
+    }
+  }
+  gsub("\";\"",";",name);
+  name = substr(name, 2, length(name)-2)
+  gsub("\"","\\\"", name);
+  gsub("\";\"",";",label);
+  label = substr(label, 2, length(label)-2)
+  gsub("\"","\\\"", label);
+  print $1"|{\"label\":\""label"\",\"name\":\""name"\"}"
+}' \
+   | lbzip2 -zc > $outfile
