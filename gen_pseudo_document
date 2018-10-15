@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+source $DIR/functions.sh
+
+hdtfile=$1
+mapping=$2
+
+lbzcat $mapping \
+  | get_all $hdtfile \
+#  | tee \
+#    >( proc_labels ) \
+#    >/dev/null
+#  | tee \
+#    >( proc_categories ) \
+#    >/dev/null
