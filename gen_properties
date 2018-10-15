@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+source $DIR/functions.sh
+
+hdtfile=$1
+mapping=$2
+outfile=$3
+prefix="http://dbpedia.org/resource/"
+label="http://www.w3.org/2000/01/rdf-schema#label"
+name="http://xmlns.com/foaf/0.1/name"
+
+awk -F"|" 'NR==FNR {m[$2]=$1;next};{print m[$1]"|"$2"|"$3}' \
+   <(lbzcat $mapping) <(lbzcat $mapping | get_literals $hdtfile) \
+  | datamash -t '|' -g 1 collapse 2 collapse 3 \
+  | awk -F"|" '{
+  c1 = split($2, a, ",");
+  c2 = split($3, b, "@en");
+  line = ""
+  for (i in a) {
+    value = b[i]
+    gsub(/^\,/,"", value)
+    value = substr(value, 2, length(value)-2)
+    gsub("\"","\\\"", value);
+    if (line != "") { line = line "," }
+    line = line "\""a[i]"\":\""value"\""
+  }
+  print $1"|{"line"}"
+}' \
+  | lbzip2 -zc > $outfile

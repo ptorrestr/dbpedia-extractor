@@ -6,6 +6,6 @@ mapping=$2
 outfile=$3
 
 lbzcat $mapping \
-  | parallel -j$(nproc) $DIR/get_name $hdtfile
-  | sort -t '|' -n -k 1
+  | parallel -j$(nproc) $DIR/get_name $hdtfile \
+  | sort -t '|' -n -k 1 \
   | lbzip2 -zc > $outfile
