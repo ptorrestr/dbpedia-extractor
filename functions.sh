@@ -3,6 +3,9 @@ prefix="http://dbpedia.org/resource/"
 label="http://www.w3.org/2000/01/rdf-schema#label"
 name="http://xmlns.com/foaf/0.1/name"
 category="http://purl.org/dc/terms/subject"
+sameas="http://www.w3.org/2002/07/owl#sameAs"
+disambiguates="http://dbpedia.org/ontology/wikiPageDisambiguates"
+redirects="http://dbpedia.org/ontology/wikiPageRedirects"
 res="results"
 
 # Queries are submitted in stdin
@@ -11,7 +14,12 @@ read_triples() {
   parallel --pipe -j1 --round-robin hdtSearch $1 \
     | awk -F ' ' -v r=$res '{ if ($0 != ">> " && $3 != r && $2 != "Dictionary" && $2 != r) { gsub(">> ", "", $0); print $0 }}' \
     | awk -F ' ' '{f=$1; s=$2; $1=""; $2="";gsub(/^[ \t]+/, "", $0); print f"|"s"|" $0 }' \
-    | awk -F '|' -v p=$prefix '{gsub(p, "<dbpedia:", $1); gsub(p, "<dbpedia:", $3); print $1">|"$2"|"$3">"}'
+    | awk -F '|' -v p=$prefix '{
+  gsub(p, "<dbpedia:", $1); 
+  a = gsub(p, "<dbpedia:", $3);
+  if ( a > 0) { $3 = $3 ">" }
+  print $1">|"$2"|"$3
+}'
 }
 
 # Get name of the resource
@@ -60,7 +68,10 @@ proc_labels() {
 
 # Get literals
 proc_literals() {
-  awk -F'|' -v l=$label -v n=$name '{ if ($3 !~ /^http:/ && $2 !=l && $2 !=n ) { print $0 } }' \
+  awk -F'|' -v l=$label -v n=$name '{
+  if ($3 !~ /^<dbpedia/ && $3 !~ /^http:/ && $2 !=l && $2 !=n ) { 
+    print $0 } 
+}' \
     | awk -F'|' '{
   c=split($2,a,"/");
   ac=a[c];
@@ -89,13 +100,13 @@ proc_literals() {
     if (line != "") { line = line "," }
     line = line "\""a[i]"\":\""value"\""
   }
-  print $1"|{"line"}"
+  print "literal|"$1"|{"line"}"
 }'
 }
 
 proc_categories() {
   awk -F"|" -v c=$category 'BEGIN{
-  s=0
+  s=1
 }
 {
   if ($1=="label") {
@@ -109,8 +120,57 @@ proc_categories() {
 END {
   for (i in m2) {
     split(m2[i], a, "|")
-    print a[2]"|"m[a[2]]
+    print a[1] "|"m[a[2]]"@en"
   }
 }
-'
+' \
+    | sort -t'|' -k 1 \
+    | datamash -t '|' -g 1 collapse 2 \
+    | awk -F'|' '{ 
+  split($2, a, "@en"); 
+  c=""; 
+  for (i in a){ 
+    if (a[i] != ",") {
+      c=a[i]
+    }
+  } 
+  print "category|"$1"|"c
+}'
+}
+
+proc_similar() {
+  awk -F'|' -v d=$disambiguates -v r=$redirects -v s=$sameas '{
+  c=split($2,a,"/");
+  ac=a[c];
+  c2=split(ac,b,"#"); 
+  if(c2>1) { 
+    ac=b[2]
+  }
+  if ($2 == d || $2 == r){ 
+    print "similar|"$3"|"ac"|"$1
+  }
+  if ($2 == s) {
+    print "similar|"$1"|"ac"|"$3
+  }
+}'
+}
+
+proc_related() {
+  awk -F'|' -v c=$category -v s=$sameas -v r=$redirects -v d=$disambiguates 'BEGIN{
+  m[c] = 1
+  m[s] = 1
+  m[r] = 1
+  m[d] = 1
+}
+{
+  if ($3 ~ /^<dbpedia/ && m[$2] != 1) {
+    c=split($2,a,"/");
+    ac=a[c];
+    c2=split(ac,b,"#"); 
+    if(c2>1) { 
+      ac=b[2]
+    }
+    print "related|"$1"|"ac"|"$3
+  }
+}'
 }
