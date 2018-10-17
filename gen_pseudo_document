@@ -6,11 +6,36 @@ source $DIR/functions.sh
 hdtfile=$1
 mapping=$2
 
-lbzcat $mapping \
-  | get_all $hdtfile \
-#  | tee \
-#    >( proc_labels ) \
-#    >/dev/null
-#  | tee \
-#    >( proc_categories ) \
-#    >/dev/null
+#tmp1=$(mktemp)
+#tmp2=$(mktemp)
+#tmp3=$(mktemp)
+#tmp4=$(mktemp)
+#tmp5=$(mktemp)
+
+p1=$(mkfifo fd1)
+p2=$(mkfifo fd2)
+p3=$(mkfifo fd3)
+p4=$(mkfifo fd4)
+p5=$(mkfifo fd5)
+
+# Read knowledge graph and classify triples
+lbzcat $mapping | get_all \
+  | tee >(proc_labels > fd1) \
+        >(proc_literals > fd2) \
+        >(proc_categories > fd3) \
+        >(proc_similar > fd4) \
+        >(proc_related > fd5) \
+        >/dev/null &
+
+#cat $tmp1 | parse_labels
+#cat $tmp2 | parse_literals
+echo "ready"
+cat < fd1 > a&
+cat < fd2 > b&
+cat < fd3 > c&
+cat < fd4 > d&
+cat < fd5 > e&
+wait $!
+echo "finishing"
+rm fd1 fd2 fd3 fd4 fd5
+#rm $tmp1 $tmp2 $tmp3 $tmp4 $tmp5

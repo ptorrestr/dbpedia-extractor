@@ -39,7 +39,11 @@ get_all() {
 # Get labels
 proc_labels() {
   awk -F'|' -v l=$label -v n=$name '{if ($2 == l || $2 == n){ print $0 }}' \
-    | datamash -t '|' -g 1 collapse 2 collapse 3 \
+    | sort -t'|' -k 1
+}
+
+parse_labels() {
+  datamash -t '|' -g 1 collapse 2 collapse 3 \
     | awk -F"|" -v l=$label -v n=$name '{
   label = ""
   name = ""
@@ -62,7 +66,7 @@ proc_labels() {
   gsub("\";\"",";",label);
   label = substr(label, 2, length(label)-2)
   gsub("\"","\\\"", label);
-  print "label|"$1"|{\"label\":\""label"\",\"name\":\""name"\"}"
+  print $1"|{\"label\":\""label"\",\"name\":\""name"\"}"
 }' 
 }
 
@@ -86,8 +90,11 @@ proc_literals() {
     val = b[1]"@en"
   }
   print $1"|"ac"|"val
-}' \
-    | datamash -t '|' -g 1 collapse 2 collapse 3 \
+}' 
+}
+
+parse_literals(){
+  datamash -t '|' -g 1 collapse 2 collapse 3 \
     | awk -F"|" '{
   c1 = split($2, a, ",");
   c2 = split($3, b, "@en");
@@ -100,42 +107,28 @@ proc_literals() {
     if (line != "") { line = line "," }
     line = line "\""a[i]"\":\""value"\""
   }
-  print "literal|"$1"|{"line"}"
+  print $1"|{"line"}"
 }'
 }
 
 proc_categories() {
-  awk -F"|" -v c=$category 'BEGIN{
-  s=1
-}
-{
-  if ($1=="label") {
-    m[$2] = $3
-  }
-  if ($2==c){
-    m2[s] = $1"|"$3
-    s++;
-  }
-}
-END {
-  for (i in m2) {
-    split(m2[i], a, "|")
-    print a[1] "|"m[a[2]]"@en"
+  awk -F"|" -v c=$category '{
+  if ($2 == c){
+    d=split($2,a,"/");
+    ac=a[d];
+    d2=split(ac,b,"#"); 
+    if(d2>1) { 
+      ac=b[2]
+    }
+    print $1"|"ac"|"$3
   }
 }
 ' \
-    | sort -t'|' -k 1 \
-    | datamash -t '|' -g 1 collapse 2 \
-    | awk -F'|' '{ 
-  split($2, a, "@en"); 
-  c=""; 
-  for (i in a){ 
-    if (a[i] != ",") {
-      c=a[i]
-    }
-  } 
-  print "category|"$1"|"c
-}'
+    | sort -t'|' -k 1
+}
+
+parse_categories() {
+  datamash -t'|' -g 1 collapse 3
 }
 
 proc_similar() {
