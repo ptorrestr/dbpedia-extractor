@@ -66,7 +66,7 @@ parse_labels() {
   gsub("\";\"",";",label);
   label = substr(label, 2, length(label)-2)
   gsub("\"","\\\"", label);
-  print $1"|{\"label\":\""label"\",\"name\":\""name"\"}"
+  print $1"|names|{\"label\":\""label"\",\"name\":\""name"\"}"
 }' 
 }
 
@@ -107,7 +107,7 @@ parse_literals(){
     if (line != "") { line = line "," }
     line = line "\""a[i]"\":\""value"\""
   }
-  print $1"|{"line"}"
+  print $1"|attributes|{"line"}"
 }'
 }
 
@@ -127,8 +127,25 @@ proc_categories() {
     | sort -t'|' -k 1
 }
 
+split_datamash() {
+  awk -F'|' '{
+  c = split($2, a, "@en");
+  b = ""
+  for (i=1; i<= length(a); i++) {
+    if ( a[i] != "," && a[i] != "" ) {
+      b = b a[i]
+    }
+  }
+  gsub(/^,/, "", b)
+  print $1"|["b"]"
+}'
+}
+
 parse_categories() {
-  datamash -t'|' -g 1 collapse 3
+  awk '{print $0"@en" }' \
+    | datamash -t'|' -g 1 collapse 2 \
+    | split_datamash \
+    | awk -F'|' '{print $1"|categories|"$2}'
 }
 
 proc_similar() {
@@ -139,13 +156,17 @@ proc_similar() {
   if(c2>1) { 
     ac=b[2]
   }
-  if ($2 == d || $2 == r){ 
-    print "similar|"$3"|"ac"|"$1
-  }
-  if ($2 == s) {
-    print "similar|"$1"|"ac"|"$3
+  if ($2 == s || $2 == d || $2 == r ) {
+    print $1"|"ac"|"$3
   }
 }'
+}
+
+parse_similar() {
+  awk '{print $0"@en" }' \
+    | datamash -t'|' -g 1 collapse 2 \
+    | split_datamash \
+    | awk -F'|' '{print $1"|similar|"$2}'
 }
 
 proc_related() {
@@ -163,7 +184,107 @@ proc_related() {
     if(c2>1) { 
       ac=b[2]
     }
-    print "related|"$1"|"ac"|"$3
+    print $1"|"ac"|"$3
   }
+}' \
+    | sort -t'|' -k 1
+}
+
+parse_related() {
+  awk '{print $0"@en" }' \
+    | datamash -t'|' -g 1 collapse 2 collapse 3 \
+    | awk -F'|' '{
+  c1 = split($2, a, ",")
+  c2 = split($3, b, "@en")
+  ac = ""
+  for (i=1; i<= length(a); i++) {
+    s = "\""a[i]"\":"
+    if ( b[i] != "," && b[i] != "" ) {
+      gsub(/^,/,"", b[i])
+      s = s b[i]
+    } else {
+      s = s "{}"
+    }
+    if ( i > 1 ) {
+      ac = ac ","
+    }
+    ac = ac s
+  }
+  print $1"|related|{"ac"}"
 }'
+}
+
+parse_document() {
+  sort -t'|' -k 1 \
+    | awk '{print $0"@en"}' \
+    | datamash -t'|' -g 1 collapse 2 collapse 3 \
+    | awk -F'|' '{
+  c1 = split($2, a, ",")
+  c2 = split($3, b, "@en")
+  ac = ""
+  for (i=1; i<= length(a); i++) {
+    s = "\""a[i]"\":"
+    if ( b[i] != ",") {
+      gsub(/^,/,"", b[i])
+      s = s b[i]
+    } else {
+      s = s "{}"
+    }
+    if ( i > 1) {
+      ac = ac ","
+    }
+    ac = ac s
+  }
+  ac = ac ",\"uri\":\"" $1 "\""
+  print "{"ac"}"
+}'   
+}
+
+flatten_document() {
+  jq '
+  {
+  name: (
+    if .names.label != "" then
+      .names.label 
+    else 
+      .names.name 
+    end)
+  ,attributes: (
+    if .attributes != null then
+      .attributes | flatten | join(" ")
+    else
+      ""
+    end
+  )
+  ,categories: (
+    if .categories != null then
+      .categories 
+        | to_entries 
+        | map(.value.label) 
+        | flatten 
+        | join(", ") 
+    else
+      ""
+    end
+  )
+  ,similar: (
+    if .similar != null then
+      .similar
+    else
+      ""
+    end
+  )
+  ,related: (
+    if .related != null then
+      .related
+        | with_entries(select(.value != {})) 
+        | to_entries 
+        | map(.key + " "+.value.label)
+        | join(", ") 
+    else
+      ""
+    end
+  )
+}
+'
 }
