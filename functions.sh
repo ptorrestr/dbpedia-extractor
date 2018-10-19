@@ -8,12 +8,24 @@ disambiguates="http://dbpedia.org/ontology/wikiPageDisambiguates"
 redirects="http://dbpedia.org/ontology/wikiPageRedirects"
 res="results"
 
-# Queries are submitted in stdin
+# Read queries from stdin and query the hdt_file with them. The queries are in
+# the format of "a b c", where a b c can be any resource or ? to denote *. 
+# Each query is contained in one line.
+# The output is capturead and cleaned. URIs based on dbpedia.org are transformed
+# to <dbpedia:*>.
 #1: hdt_file
 read_triples() {
   parallel --pipe -j1 --round-robin hdtSearch $1 \
-    | awk -F ' ' -v r=$res '{ if ($0 != ">> " && $3 != r && $2 != "Dictionary" && $2 != r) { gsub(">> ", "", $0); print $0 }}' \
-    | awk -F ' ' '{f=$1; s=$2; $1=""; $2="";gsub(/^[ \t]+/, "", $0); print f"|"s"|" $0 }' \
+    | awk -F ' ' -v r=$res '{
+  if ($0 != ">> " && $3 != r && $2 != "Dictionary" && $2 != r) { 
+    gsub(">> ", "", $0); print $0 
+  }
+}' \
+    | awk -F ' ' '{
+  f=$1; s=$2; $1="";
+  $2="";
+  gsub(/^[ \t]+/, "", $0);
+  print f"|"s"|" $0 }' \
     | awk -F '|' -v p=$prefix '{
   gsub(p, "<dbpedia:", $1); 
   a = gsub(p, "<dbpedia:", $3);
@@ -22,25 +34,26 @@ read_triples() {
 }'
 }
 
-# Get name of the resource
+# Get the name of the resources in the mapping format.
 get_name() {
   cut -d '|' -f2 \
     | cut --complement -d ":" -f1 \
     | tr -d '>'
 }
 
-# Get all triples
+# Obtain any triple in hdtfile for the given mapping keys.
 get_all() {
   get_name \
     | awk -v p=$prefix '{print p $0" ? ?"}' \
     | read_triples $hdtfile
 }
 
-# Get labels
+# Capture labels in the triple stream.
 proc_labels() {
   awk -F'|' -v l=$label -v n=$name '{if ($2 == l || $2 == n){ print $0 }}' 
 }
 
+# Parse labels to json format
 parse_labels() {
   datamash -s -t '|' -g 1 collapse 2 collapse 3 \
     | awk -F"|" -v l=$label -v n=$name '{
@@ -69,7 +82,7 @@ parse_labels() {
 }' 
 }
 
-# Get literals
+# Capture literals in the triple stream
 proc_literals() {
   awk -F'|' -v l=$label -v n=$name '{
   if ($3 !~ /^<dbpedia/ && $3 !~ /^http:/ && $2 !=l && $2 !=n ) { 
@@ -92,6 +105,7 @@ proc_literals() {
 }' 
 }
 
+# Parse literals to json format
 parse_literals(){
   datamash -s -t '|' -g 1 collapse 2 collapse 3 \
     | awk -F"|" '{
@@ -110,6 +124,7 @@ parse_literals(){
 }'
 }
 
+# Capture categories in triple stream
 proc_categories() {
   awk -F"|" -v c=$category '{
   if ($2 == c){
@@ -126,6 +141,7 @@ proc_categories() {
     | sort -t'|' -k 1
 }
 
+# Write in json format the result of datamash
 split_datamash() {
   awk -F'|' '{
   c = split($2, a, "@en");
@@ -140,6 +156,7 @@ split_datamash() {
 }'
 }
 
+# Parse categories in json format
 parse_categories() {
   awk '{print $0"@en" }' \
     | datamash -s -t'|' -g 1 collapse 2 \
@@ -147,6 +164,7 @@ parse_categories() {
     | awk -F'|' '{print $1"|categories|"$2}'
 }
 
+# Capture similar in the triple stream
 proc_similar() {
   awk -F'|' -v d=$disambiguates -v r=$redirects -v s=$sameas '{
   c=split($2,a,"/");
@@ -161,6 +179,7 @@ proc_similar() {
 }'
 }
 
+# Parse similar in json format
 parse_similar() {
   awk '{print $0"@en" }' \
     | datamash -s -t'|' -g 1 collapse 2 \
@@ -168,6 +187,7 @@ parse_similar() {
     | awk -F'|' '{print $1"|similar|"$2}'
 }
 
+# Capture related in the triple stream
 proc_related() {
   awk -F'|' -v c=$category -v s=$sameas -v r=$redirects -v d=$disambiguates 'BEGIN{
   m[c] = 1
@@ -189,6 +209,7 @@ proc_related() {
     | sort -t'|' -k 1
 }
 
+# Parse related in json format
 parse_related() {
   awk '{print $0"@en" }' \
     | datamash -s -t'|' -g 1 collapse 2 collapse 3 \
@@ -213,6 +234,8 @@ parse_related() {
 }'
 }
 
+# Build json document from the five fields: labels, literals, categories
+# similar and related.
 parse_document() {
   awk '{print $0"@en"}' \
     | datamash -s -t'|' -g 1 collapse 2 collapse 3 \
@@ -238,6 +261,7 @@ parse_document() {
 }'   
 }
 
+# Flatten each categories into a single text
 flatten_document() {
   jq '
   {

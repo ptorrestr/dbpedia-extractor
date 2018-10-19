@@ -6,6 +6,7 @@ source $DIR/functions.sh
 hdtfile=$1
 mapping=$2
 
+# Create fifos
 p1=$(mkfifo fd1)
 p2=$(mkfifo fd2)
 p3=$(mkfifo fd3)
@@ -15,7 +16,7 @@ p6=$(mkfifo fd6)
 p7=$(mkfifo fd7)
 p8=$(mkfifo fd8)
 
-# Read knowledge graph and classify triples
+# Read knowledge graph and classify triples accordingly
 lbzcat $mapping | get_all  \
   | tee >(proc_labels | parse_labels > fd1) \
         >(proc_literals | parse_literals > fd2) \
@@ -24,17 +25,19 @@ lbzcat $mapping | get_all  \
         >(proc_related > fd5) \
         >/dev/null &
 
-#echo "ready"
+# Read each fifo and parse the triples to json
 cat < fd1 | tee fd6 fd7 fd8 > a&
 cat < fd2 > b&
+# These fields required to know the labels of other triples. Therefore
+# we need fisrt to map URIs to labels.
 awk -F'|' 'NR==FNR {m[$1]=$3;next};{print $1"|"m[$3]}' <(cat fd6) <(cat fd3) | parse_categories > c&
 awk -F'|' 'NR==FNR {m[$1]=$3;next};{print $1"|"m[$3]}' <(cat fd7) <(cat fd4) | parse_similar > d&
 awk -F'|' 'NR==FNR {m[$1]=$3;next};{print $1"|"$2"|"m[$3]}' <(cat fd8) <(cat fd5) | parse_related > e&
 
-#echo "waiting"
+# Read all the pipes and create a single json document for each resource
 wait $!
 cat a b c d e \
   | parse_document 
-#echo "finishing"
+
+# Remove fifos
 rm fd1 fd2 fd3 fd4 fd5 fd6 fd7 fd8
-#rm $tmp1 $tmp2 $tmp3 $tmp4 $tmp5
