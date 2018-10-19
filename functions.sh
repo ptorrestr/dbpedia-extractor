@@ -264,6 +264,12 @@ parse_document() {
 # Flatten each categories into a single text
 flatten_document() {
   jq '
+  def tokenise(a):
+    [a 
+      | match("([a-z]+|[A-Z][a-z]+)";"g")
+      | .string ] 
+    | join(" ")
+  ;
   {
   name: (
     if .names == null then
@@ -306,7 +312,7 @@ flatten_document() {
       .related
         | with_entries(select(.value != {})) 
         | to_entries 
-        | map(.key + " "+.value.label)
+        | map(tokenise(.key) + " "+.value.label)
         | join(", ") 
     else
       ""
