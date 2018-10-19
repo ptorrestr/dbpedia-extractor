@@ -215,9 +215,8 @@ parse_related() {
 }
 
 parse_document() {
-  sort -t'|' -k 1 \
-    | awk '{print $0"@en"}' \
-    | datamash -t'|' -g 1 collapse 2 collapse 3 \
+  awk '{print $0"@en"}' \
+    | datamash -s -t'|' -g 1 collapse 2 collapse 3 \
     | awk -F'|' '{
   c1 = split($2, a, ",")
   c2 = split($3, b, "@en")
@@ -244,11 +243,16 @@ flatten_document() {
   jq '
   {
   name: (
-    if .names.label != "" then
-      .names.label 
-    else 
-      .names.name 
-    end)
+    if .names == null then
+      empty
+    else
+      if .names.label != "" then
+        .names.label 
+      else 
+        .names.name 
+      end
+    end
+  )
   ,attributes: (
     if .attributes != null then
       .attributes | flatten | join(" ")

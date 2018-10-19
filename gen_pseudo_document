@@ -16,7 +16,7 @@ p7=$(mkfifo fd7)
 p8=$(mkfifo fd8)
 
 # Read knowledge graph and classify triples
-lbzcat $mapping | get_all \
+lbzcat $mapping | get_all  \
   | tee >(proc_labels | parse_labels > fd1) \
         >(proc_literals | parse_literals > fd2) \
         >(proc_categories > fd3) \
@@ -33,7 +33,8 @@ awk -F'|' 'NR==FNR {m[$1]=$3;next};{print $1"|"$2"|"m[$3]}' <(cat fd8) <(cat fd5
 
 #echo "waiting"
 wait $!
-cat a b c d e | parse_document 
+cat a b c d e \
+  | parse_document 
 #echo "finishing"
 rm fd1 fd2 fd3 fd4 fd5 fd6 fd7 fd8
 #rm $tmp1 $tmp2 $tmp3 $tmp4 $tmp5
