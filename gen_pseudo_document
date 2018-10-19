@@ -16,6 +16,12 @@ p6=$(mkfifo fd6)
 p7=$(mkfifo fd7)
 p8=$(mkfifo fd8)
 
+p9=$(mkfifo fd9)
+p10=$(mkfifo fd10)
+p11=$(mkfifo fd11)
+p12=$(mkfifo fd12)
+p13=$(mkfifo fd13)
+
 # Read knowledge graph and classify triples accordingly
 lbzcat $mapping | get_all  \
   | tee >(proc_labels | parse_labels > fd1) \
@@ -26,18 +32,18 @@ lbzcat $mapping | get_all  \
         >/dev/null &
 
 # Read each fifo and parse the triples to json
-cat < fd1 | tee fd6 fd7 fd8 > a&
-cat < fd2 > b&
+# We need to share fd1 to categories, similar and related.
+cat < fd1 | tee fd6 fd7 fd8 > fd9&
+cat < fd2 > fd10&
 # These fields required to know the labels of other triples. Therefore
 # we need fisrt to map URIs to labels.
-awk -F'|' 'NR==FNR {m[$1]=$3;next};{print $1"|"m[$3]}' <(cat fd6) <(cat fd3) | parse_categories > c&
-awk -F'|' 'NR==FNR {m[$1]=$3;next};{print $1"|"m[$3]}' <(cat fd7) <(cat fd4) | parse_similar > d&
-awk -F'|' 'NR==FNR {m[$1]=$3;next};{print $1"|"$2"|"m[$3]}' <(cat fd8) <(cat fd5) | parse_related > e&
+awk -F'|' 'NR==FNR {m[$1]=$3;next};{print $1"|"m[$3]}' <(cat fd6) <(cat fd3) | parse_categories > fd11&
+awk -F'|' 'NR==FNR {m[$1]=$3;next};{print $1"|"m[$3]}' <(cat fd7) <(cat fd4) | parse_similar > fd12&
+awk -F'|' 'NR==FNR {m[$1]=$3;next};{print $1"|"$2"|"m[$3]}' <(cat fd8) <(cat fd5) | parse_related > fd13&
 
 # Read all the pipes and create a single json document for each resource
-wait $!
-cat a b c d e \
+cat fd9 fd10 fd11 fd12 fd13 \
   | parse_document 
-
+wait $!
 # Remove fifos
-rm fd1 fd2 fd3 fd4 fd5 fd6 fd7 fd8
+rm fd1 fd2 fd3 fd4 fd5 fd6 fd7 fd8 fd9 fd10 fd11 fd12 fd13
