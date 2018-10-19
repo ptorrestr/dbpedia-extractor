@@ -38,12 +38,11 @@ get_all() {
 
 # Get labels
 proc_labels() {
-  awk -F'|' -v l=$label -v n=$name '{if ($2 == l || $2 == n){ print $0 }}' \
-    | sort -t'|' -k 1
+  awk -F'|' -v l=$label -v n=$name '{if ($2 == l || $2 == n){ print $0 }}' 
 }
 
 parse_labels() {
-  datamash -t '|' -g 1 collapse 2 collapse 3 \
+  datamash -s -t '|' -g 1 collapse 2 collapse 3 \
     | awk -F"|" -v l=$label -v n=$name '{
   label = ""
   name = ""
@@ -94,7 +93,7 @@ proc_literals() {
 }
 
 parse_literals(){
-  datamash -t '|' -g 1 collapse 2 collapse 3 \
+  datamash -s -t '|' -g 1 collapse 2 collapse 3 \
     | awk -F"|" '{
   c1 = split($2, a, ",");
   c2 = split($3, b, "@en");
@@ -143,7 +142,7 @@ split_datamash() {
 
 parse_categories() {
   awk '{print $0"@en" }' \
-    | datamash -t'|' -g 1 collapse 2 \
+    | datamash -s -t'|' -g 1 collapse 2 \
     | split_datamash \
     | awk -F'|' '{print $1"|categories|"$2}'
 }
@@ -164,7 +163,7 @@ proc_similar() {
 
 parse_similar() {
   awk '{print $0"@en" }' \
-    | datamash -t'|' -g 1 collapse 2 \
+    | datamash -s -t'|' -g 1 collapse 2 \
     | split_datamash \
     | awk -F'|' '{print $1"|similar|"$2}'
 }
@@ -192,7 +191,7 @@ proc_related() {
 
 parse_related() {
   awk '{print $0"@en" }' \
-    | datamash -t'|' -g 1 collapse 2 collapse 3 \
+    | datamash -s -t'|' -g 1 collapse 2 collapse 3 \
     | awk -F'|' '{
   c1 = split($2, a, ",")
   c2 = split($3, b, "@en")
