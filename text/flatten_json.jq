@@ -53,4 +53,5 @@ def tokenise(a):
       ""
     end
   )
+  , uri: .uri
 }

@@ -17,14 +17,6 @@ fd5=$(mktemp -u)
 fd6=$(mktemp -u)
 fd7=$(mktemp -u)
 
-echo $fd1
-echo $fd2
-echo $fd3
-echo $fd4
-echo $fd5
-echo $fd6
-echo $fd7
-
 #p1=$(mkfifo $fd1)
 #p2=$(mkfifo $fd2)
 #p3=$(mkfifo $fd3)
