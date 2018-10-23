@@ -91,7 +91,7 @@ lbzcat $fd2 $fd3 $fd4 $fd5 $fd6 \
 
 # Flattend documents
 lbzcat $fd7 \
-  | parallel --pipe -j$proc --round-robin jq -f text/flatten_json.jq \
+  | parallel --pipe -j$proc --round-robin jq -cM -f text/flatten_json.jq \
   | lbzip2 -zc > $outputfile
 
 # Remove fifos
