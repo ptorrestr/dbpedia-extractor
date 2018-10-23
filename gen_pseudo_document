@@ -15,11 +15,6 @@ fd5=$(mktemp -u)
 fd6=$(mktemp -u)
 fd7=$(mktemp -u)
 fd8=$(mktemp -u)
-fd9=$(mktemp -u)
-fd10=$(mktemp -u)
-fd11=$(mktemp -u)
-fd12=$(mktemp -u)
-fd13=$(mktemp -u)
 
 echo $fd1
 echo $fd2
@@ -29,11 +24,6 @@ echo $fd5
 echo $fd6
 echo $fd7
 echo $fd8
-echo $fd9
-echo $fd10
-echo $fd11
-echo $fd12
-echo $fd13
 
 #p1=$(mkfifo $fd1)
 #p2=$(mkfifo $fd2)
@@ -43,11 +33,6 @@ echo $fd13
 #p6=$(mkfifo $fd6)
 #p7=$(mkfifo $fd7)
 #p8=$(mkfifo $fd8)
-#p9=$(mkfifo $fd9)
-#p10=$(mkfifo $fd10)
-#p11=$(mkfifo $fd11)
-#p12=$(mkfifo $fd12)
-#p13=$(mkfifo $fd13)
 
 # Read knowledge graph and classify triples accordingly
 lbzcat $mapping \
@@ -60,23 +45,17 @@ lbzcat $mapping \
     awk -F \' \' \'$awk_prog_2 \' \
   | parallel --pipe -j$proc --round-robin \
     awk -F \'$sep\' -v p=$prefix \'$awk_prog_3 \' \
-  | tee $fd1 \
-        >/dev/null
-#        >(proc_literals | parse_literals > $fd2) \
-#        >(proc_categories > $fd3) \
-#        >(proc_similar > $fd4) \
-#        >(proc_related > $fd5) \
-#        >/dev/null
+  | lbzip2 -zc > $fd1
 
 # Classify triples and parse
-cat < $fd1 \
+lbzcat $fd1 \
   | parallel --pipe -j$proc2 --round-robin awk -F \'$sep\' -v l=$label -v n=$name \'$awk_prog_4 \' \
   | LC_ALL=C sort -S$mem --parallel $proc2 -t"$sep" -k1,1 \
   | datamash -t"$sep" -g 1 collapse 2 collapse 3 \
   | parallel --pipe -j$proc2 --round-robin awk -F \'$sep\' -v l=$label -v n=$name -f text/labels_to_json.awk > $fd2
 
 # Classify literals and parse
-cat < $fd1 \
+lbzcat $fd1 \
   | parallel --pipe -j$proc2 --round-robin awk -F \'$sep\' -v l=$label -v n=$name -f text/classify_literals.awk \
   | LC_ALL=C sort -S$mem --parallel $proc2 -t"$sep" -k1,1 \
   | datamash -t"$sep" -g 1 collapse 2 collapse 3 \
@@ -84,7 +63,7 @@ cat < $fd1 \
 
 # Classify categories and parse
 awk -F"$sep" 'NR==FNR {m[$1]=$3;next};{print $1"|"m[$3]"@en"}' \
-  <(cat $fd2) <(cat $fd1 | \
+  <(cat $fd2) <(lbzcat $fd1 | \
               parallel --pipe -j$proc2 --round-robin awk -F \"${sep}\" -v c=$category -f text/classify_categories.awk ) \
   | LC_ALL=C sort -S$mem --parallel $proc -t"$sep" -k1,1 \
   | datamash -t"$sep" -g 1 collapse 2 \
@@ -92,7 +71,7 @@ awk -F"$sep" 'NR==FNR {m[$1]=$3;next};{print $1"|"m[$3]"@en"}' \
 
 # Classify similar and parse
 awk -F'|' 'NR==FNR {m[$1]=$3;next};{print $1"|"m[$3]"@en"}' \
-  <(cat $fd2) <(cat $fd1 | \
+  <(cat $fd2) <(lbzcat $fd1 | \
               parallel --pipe -j$proc2 --round-robin awk -F \"${sep}\" -v d=$disambiguates -v r=$redirects -v s=$sameas -f text/classify_similar.awk ) \
   | LC_ALL=C sort -S$mem --parallel $proc -t"$sep" -k1,1 \
   | datamash -t"$sep" -g 1 collapse 2 \
@@ -100,7 +79,7 @@ awk -F'|' 'NR==FNR {m[$1]=$3;next};{print $1"|"m[$3]"@en"}' \
 
 # Classify related and parse
 awk -F'|' 'NR==FNR {m[$1]=$3;next};{print $1"|"$2"|"m[$3]"@en"}' \
-  <(cat $fd2) <(cat $fd1 | \
+  <(cat $fd2) <(lbzcat $fd1 | \
               parallel --pipe -j$proc2 --round-robin awk -F \"${sep}\" -v c=$category -v s=$sameas -v r=$redirects -v d=$disambiguates -f text/classify_related.awk ) \
   | LC_ALL=C sort -S$mem --parallel $proc -t"$sep" -k1,1 \
   | datamash -t"$sep" -g 1 collapse 2 collapse 3 \
@@ -111,20 +90,11 @@ cat $fd2 $fd3 $fd4 $fd5 $fd6 \
   | parallel --pipe -j$proc2 --round-robin awk -F \'$sep\' \'$awk_prog_5 \' \
   | LC_ALL=C sort -S$mem --parallel $proc -t"$sep" -k1,1 \
   | datamash -t"$sep" -g 1 collapse 2 collapse 3 \
-  | parallel --pipe -j$proc2 --round-robin awk -F \'$sep\' -f text/split_document.awk  
-# Read each fifo and parse the triples to json
-# We need to share fd1 to categories, similar and related.
-#cat < $fd1 | tee $fd6 $fd7 $fd8 > $fd9
-#cat < $fd2 > $fd10
-# These fields required to know the labels of other triples. Therefore
-# we need fisrt to map URIs to labels.
-#awk -F'|' 'NR==FNR {m[$1]=$3;next};{print $1"|"m[$3]}' <(cat $fd6) <(cat $fd3) | parse_categories > $fd11
-#awk -F'|' 'NR==FNR {m[$1]=$3;next};{print $1"|"m[$3]}' <(cat $fd7) <(cat $fd4) | parse_similar > $fd12
-#awk -F'|' 'NR==FNR {m[$1]=$3;next};{print $1"|"$2"|"m[$3]}' <(cat $fd8) <(cat $fd5) | parse_related > $fd13
+  | parallel --pipe -j$proc2 --round-robin awk -F \'$sep\' -f text/split_document.awk > $fd7 
 
-# Read all the pipes and create a single json document for each resource
-#cat $fd9 $fd10 $fd11 $fd12 $fd13 \
-#  | parse_document > /dev/null
-#wait $!
+# Flattend documents
+cat $fd7 \
+  | parallel --pipe -j$proc --round-robin jq -f text/flatten_json.jq > $fd8
+
 # Remove fifos
-#rm $fd1 $fd2 $fd3 $fd4 $fd5 $fd6 $fd7 $fd8 $fd9 $fd10 $fd11 $fd12 $fd13
+rm $fd1 $fd2 $fd3 $fd4 $fd5 $fd6
