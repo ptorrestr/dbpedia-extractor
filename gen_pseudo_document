@@ -5,6 +5,8 @@ source $DIR/functions.sh
 
 hdtfile=$1
 mapping=$2
+outputfile=$3
+outputfile2=/dev/null
 
 # Creating file names
 fd1=$(mktemp -u)
@@ -14,7 +16,6 @@ fd4=$(mktemp -u)
 fd5=$(mktemp -u)
 fd6=$(mktemp -u)
 fd7=$(mktemp -u)
-fd8=$(mktemp -u)
 
 echo $fd1
 echo $fd2
@@ -23,7 +24,6 @@ echo $fd4
 echo $fd5
 echo $fd6
 echo $fd7
-echo $fd8
 
 #p1=$(mkfifo $fd1)
 #p2=$(mkfifo $fd2)
@@ -32,7 +32,6 @@ echo $fd8
 #p5=$(mkfifo $fd5)
 #p6=$(mkfifo $fd6)
 #p7=$(mkfifo $fd7)
-#p8=$(mkfifo $fd8)
 
 # Read knowledge graph and classify triples accordingly
 lbzcat $mapping \
@@ -52,49 +51,56 @@ lbzcat $fd1 \
   | parallel --pipe -j$proc2 --round-robin awk -F \'$sep\' -v l=$label -v n=$name \'$awk_prog_4 \' \
   | LC_ALL=C sort -S$mem --parallel $proc2 -t"$sep" -k1,1 \
   | datamash -t"$sep" -g 1 collapse 2 collapse 3 \
-  | parallel --pipe -j$proc2 --round-robin awk -F \'$sep\' -v l=$label -v n=$name -f text/labels_to_json.awk > $fd2
+  | parallel --pipe -j$proc2 --round-robin awk -F \'$sep\' -v l=$label -v n=$name -f text/labels_to_json.awk \
+  | lbzip2 -zc > $fd2
 
 # Classify literals and parse
 lbzcat $fd1 \
   | parallel --pipe -j$proc2 --round-robin awk -F \'$sep\' -v l=$label -v n=$name -f text/classify_literals.awk \
   | LC_ALL=C sort -S$mem --parallel $proc2 -t"$sep" -k1,1 \
   | datamash -t"$sep" -g 1 collapse 2 collapse 3 \
-  | parallel --pipe -j$proc2 --round-robin awk -F \'$sep\' -f text/literals_to_json.awk > $fd3
+  | parallel --pipe -j$proc2 --round-robin awk -F \'$sep\' -f text/literals_to_json.awk \
+  | lbzip2 -zc > $fd3
 
 # Classify categories and parse
 awk -F"$sep" 'NR==FNR {m[$1]=$3;next};{print $1"|"m[$3]"@en"}' \
-  <(cat $fd2) <(lbzcat $fd1 | \
+  <(lbzcat $fd2) <(lbzcat $fd1 | \
               parallel --pipe -j$proc2 --round-robin awk -F \"${sep}\" -v c=$category -f text/classify_categories.awk ) \
   | LC_ALL=C sort -S$mem --parallel $proc -t"$sep" -k1,1 \
   | datamash -t"$sep" -g 1 collapse 2 \
-  | parallel --pipe -j$proc2 --round-robin awk -F \'$sep\' -v t=\'categories\' -f text/split_datamash.awk > $fd4
+  | parallel --pipe -j$proc2 --round-robin awk -F \'$sep\' -v t=\'categories\' -f text/split_datamash.awk \
+  | lbzip2 -zc > $fd4
 
 # Classify similar and parse
 awk -F'|' 'NR==FNR {m[$1]=$3;next};{print $1"|"m[$3]"@en"}' \
-  <(cat $fd2) <(lbzcat $fd1 | \
+  <(lbzcat $fd2) <(lbzcat $fd1 | \
               parallel --pipe -j$proc2 --round-robin awk -F \"${sep}\" -v d=$disambiguates -v r=$redirects -v s=$sameas -f text/classify_similar.awk ) \
   | LC_ALL=C sort -S$mem --parallel $proc -t"$sep" -k1,1 \
   | datamash -t"$sep" -g 1 collapse 2 \
-  | parallel --pipe -j$proc2 --round-robin awk -F \'$sep\' -v t=\'similar\' -f text/split_datamash.awk > $fd5
+  | parallel --pipe -j$proc2 --round-robin awk -F \'$sep\' -v t=\'similar\' -f text/split_datamash.awk \
+  | lbzip2 -zc > $fd5
 
 # Classify related and parse
 awk -F'|' 'NR==FNR {m[$1]=$3;next};{print $1"|"$2"|"m[$3]"@en"}' \
-  <(cat $fd2) <(lbzcat $fd1 | \
+  <(lbzcat $fd2) <(lbzcat $fd1 | \
               parallel --pipe -j$proc2 --round-robin awk -F \"${sep}\" -v c=$category -v s=$sameas -v r=$redirects -v d=$disambiguates -f text/classify_related.awk ) \
   | LC_ALL=C sort -S$mem --parallel $proc -t"$sep" -k1,1 \
   | datamash -t"$sep" -g 1 collapse 2 collapse 3 \
-  | parallel --pipe -j$proc2 --round-robin awk -F \'$sep\' -f text/split_related.awk > $fd6
+  | parallel --pipe -j$proc2 --round-robin awk -F \'$sep\' -f text/split_related.awk \
+  | lbzip2 -zc > $fd6
 
 # Create documents
-cat $fd2 $fd3 $fd4 $fd5 $fd6 \
+lbzcat $fd2 $fd3 $fd4 $fd5 $fd6 \
   | parallel --pipe -j$proc2 --round-robin awk -F \'$sep\' \'$awk_prog_5 \' \
   | LC_ALL=C sort -S$mem --parallel $proc -t"$sep" -k1,1 \
   | datamash -t"$sep" -g 1 collapse 2 collapse 3 \
-  | parallel --pipe -j$proc2 --round-robin awk -F \'$sep\' -f text/split_document.awk > $fd7 
+  | parallel --pipe -j$proc2 --round-robin awk -F \'$sep\' -f text/split_document.awk \
+  | lbzip2 -zc | tee $fd7 > $outputfile2
 
 # Flattend documents
-cat $fd7 \
-  | parallel --pipe -j$proc --round-robin jq -f text/flatten_json.jq > $fd8
+lbzcat $fd7 \
+  | parallel --pipe -j$proc --round-robin jq -f text/flatten_json.jq \
+  | lbzip2 -zc > $outputfile
 
 # Remove fifos
-rm $fd1 $fd2 $fd3 $fd4 $fd5 $fd6
+rm $fd1 $fd2 $fd3 $fd4 $fd5 $fd6 $fd8
