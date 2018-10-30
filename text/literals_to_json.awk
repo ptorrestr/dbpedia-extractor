@@ -6,6 +6,7 @@
     value = b[i]
     gsub(/^\,/,"", value)
     value = substr(value, 2, length(value)-2)
+		gsub(/\\/,"\\\\", value);
     gsub("\"","\\\"", value);
     if (line != "") { line = line "," }
     line = line "\""a[i]"\":\""value"\""
