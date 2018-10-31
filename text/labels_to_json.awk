@@ -16,9 +16,9 @@
   }
   gsub("\";\"",";",name);
   name = substr(name, 2, length(name)-2)
-  gsub("\"","\\\"", name);
+  name = gensub(/(\"|\\)/,"\\\\\\0", "g", name)
   gsub("\";\"",";",label);
   label = substr(label, 2, length(label)-2)
-  gsub("\"","\\\"", label);
+  label = gensub(/(\"|\\)/,"\\\\\\0", "g", label)
   print $1"|names|{\"label\":\""label"\",\"name\":\""name"\"}"
 }
