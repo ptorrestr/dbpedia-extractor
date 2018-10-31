@@ -6,21 +6,11 @@ category="http://purl.org/dc/terms/subject"
 sameas="http://www.w3.org/2002/07/owl#sameAs"
 disambiguates="http://dbpedia.org/ontology/wikiPageDisambiguates"
 redirects="http://dbpedia.org/ontology/wikiPageRedirects"
-res="results"
 proc="12"
 proc2="4"
 sep="|"
 mem="1G"
 
-
-# This program remove garbage from the output of hdtSearch
-awk_prog='{
-  if ($0 != ">> " && $3 != r && $2 != "Dictionary" && $2 != r) {
-    gsub(">> ", "", $0);
-    print $0
-  } 
-}
-'
 
 # This program trim white spaces and set '|' as the separator
 awk_prog_2='{

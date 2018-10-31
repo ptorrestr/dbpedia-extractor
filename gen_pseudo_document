@@ -29,9 +29,7 @@ fd7=$(mktemp -u)
 lbzcat $mapping \
   | get_name \
   | awk -v p=$prefix '{print p $0" ? ?"}' \
-  | parallel --pipe -j$proc --round-robin hdtSearch $hdtfile \
-  | parallel --pipe -j$proc --round-robin \
-    awk -F \' \' -v r=$res \'$awk_prog \' \
+  | parallel --pipe -j$proc --round-robin hdtSearch $hdtfile 2>/dev/null \
   | parallel --pipe -j$proc --round-robin \
     awk -F \' \' \'$awk_prog_2 \' \
   | parallel --pipe -j$proc --round-robin \
@@ -95,4 +93,4 @@ lbzcat $fd7 \
   | lbzip2 -zc > $outputfile
 
 # Remove fifos
-rm $fd1 $fd2 $fd3 $fd4 $fd5 $fd6 $fd8
+#rm $fd1 $fd2 $fd3 $fd4 $fd5 $fd6 $fd8
