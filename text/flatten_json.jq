@@ -38,6 +38,9 @@ def tokenise(a):
   ,similar: (
     if .similar != null then
       .similar
+        | to_entries
+        | map(.value.label)
+        | join(", ")
     else
       ""
     end
