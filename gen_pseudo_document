@@ -16,7 +16,7 @@ fd4=$(mktemp -u)
 fd5=$(mktemp -u)
 fd6=$(mktemp -u)
 fd7=$(mktemp -u)
-
+er1=$(mktemp -u)
 #p1=$(mkfifo $fd1)
 #p2=$(mkfifo $fd2)
 #p3=$(mkfifo $fd3)
@@ -30,10 +30,9 @@ lbzcat $mapping \
   | get_name \
   | awk -v p=$prefix '{print p $0" ? ?"}' \
   | parallel --pipe -j$proc --round-robin hdtSearch $hdtfile 2>/dev/null \
-  | parallel --pipe -j$proc --round-robin \
-    awk -F \' \' \'$awk_prog_2 \' \
-  | parallel --pipe -j$proc --round-robin \
-    awk -F \'$sep\' -v p=$prefix \'$awk_prog_3 \' \
+  | parallel --pipe -j$proc --round-robin awk -F \' \' \'$awk_prog_1 \' \
+  | parallel --pipe -j$proc --round-robin awk -F \'$sep\' \'$awk_prog_2 \' 2> $er1 \
+  | parallel --pipe -j$proc --round-robin awk -F \'$sep\' -v p=$prefix \'$awk_prog_3 \' \
   | lbzip2 -zc > $fd1
 
 # Classify triples and parse

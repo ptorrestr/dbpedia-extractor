@@ -12,12 +12,19 @@ sep="|"
 mem="1G"
 
 
-# This program trim white spaces and set '|' as the separator
-awk_prog_2='{
-  f=$1; s=$2; $1="";
-  $2="";
+# This program trim white spaces, remves '|' from objects and set '|' as the separator
+awk_prog_1='{
+  f=$1; s=$2; $1="";  $2="";
   gsub(/^[ \t]+/, "", $0);
+  gsub(/\|/, " ", $0);
   print f"|"s"|" $0 
+}'
+
+# Make sure the input is composed by triples exclusively. Print to stderr what
+# does not look like a triple.
+awk_prog_2='{
+  if (NF == 3) { print $0 }
+  else { print $0 > "/dev/stderr" }
 }'
 
 # Tansform dbpedia urls to <dbpedia:xxx>
