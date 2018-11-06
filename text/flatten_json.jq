@@ -1,7 +1,7 @@
 def tokenise(a):
-[a 
+[a
   | match("([a-z]+|[A-Z][a-z]+)";"g")
-  | .string ] 
+  | .string ]
   | join(" ")
 ;
 
@@ -11,9 +11,9 @@ def tokenise(a):
       empty
     else
       if .names.label != "" then
-        .names.label 
-      else 
-        .names.name 
+        .names.label
+      else
+        .names.name
       end
     end
   )
@@ -26,11 +26,11 @@ def tokenise(a):
   )
   ,categories: (
     if .categories != null then
-      .categories 
-        | to_entries 
-        | map(.value.label) 
-        | flatten 
-        | join(", ") 
+      .categories
+        | to_entries
+        | map(.value.label)
+        | flatten
+        | join(", ")
     else
       ""
     end
@@ -48,13 +48,13 @@ def tokenise(a):
   ,related: (
     if .related != null then
       .related
-        | with_entries(select(.value != {})) 
-        | to_entries 
+        | with_entries(select(.value != {}))
+        | to_entries
         | map(tokenise(.key) + " "+.value.label)
-        | join(", ") 
+        | join(", ")
     else
       ""
     end
   )
-  , uri: .uri
+  , id: .id
 }

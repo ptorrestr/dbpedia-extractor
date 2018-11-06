@@ -15,6 +15,5 @@
     }
     ac = ac s
   }
-  ac = ac ",\"uri\":\"" $1 "\""
   print "{"ac"}"
 }

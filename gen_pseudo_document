@@ -16,6 +16,7 @@ fd4=$(mktemp -u)
 fd5=$(mktemp -u)
 fd6=$(mktemp -u)
 fd7=$(mktemp -u)
+fd8=$(mktemp -u)
 er1=$(mktemp -u)
 #p1=$(mkfifo $fd1)
 #p2=$(mkfifo $fd2)
@@ -78,8 +79,13 @@ awk -F'|' 'NR==FNR {m[$1]=$3;next};{print $1"|"$2"|"m[$3]"@en"}' \
   | parallel --pipe -j$proc2 --round-robin awk -F \'$sep\' -f text/split_related.awk \
   | lbzip2 -zc > $fd6
 
+# Add uri and id
+lbzcat $mapping \
+  | parallel --pipe -j$proc2 --round-robin awk -F \'$sep\' -f text/id_to_json.awk \
+  | lbzip2 -zc > $fd8
+
 # Create documents
-lbzcat $fd2 $fd3 $fd4 $fd5 $fd6 \
+lbzcat $fd2 $fd3 $fd4 $fd5 $fd6 $fd8\
   | parallel --pipe -j$proc2 --round-robin awk -F \'$sep\' \'$awk_prog_5 \' \
   | LC_ALL=C sort -S$mem --parallel $proc -t"$sep" -k1,1 \
   | datamash -t"$sep" -g 1 collapse 2 collapse 3 \
