@@ -8,7 +8,7 @@ def tokenise(a):
 {
   name: (
     if .names == null then
-      empty
+      ""
     else
       if .names.label != "" then
         .names.label
