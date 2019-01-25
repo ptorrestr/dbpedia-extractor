@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 input="$1"
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
-( test $(uname) = 'Darwin' &&	nproc=$(sysctl -n hw.ncpu) ) \
- 	|| nproc=$(nproc)
+source $DIR/aliases.env
 
 lbzcat $1 \
-  | parallel --pipe -j${nproc} --round-robin --block 1M $DIR/clean_line \
+  | parallel --pipe -j$(nproc) --round-robin --block 1M $DIR/clean_line \
   | lbzip2 -zc > $2

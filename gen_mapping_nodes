@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+source $DIR/aliases.env
 temp_file_1=$(mktemp)
 temp_file_2=$(mktemp)
 temp_file_3=$(mktemp)
