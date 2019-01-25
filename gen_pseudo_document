@@ -4,6 +4,8 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 source $DIR/aliases.env
 source $DIR/functions.sh
 
+hash hdtSearch || exit 1
+
 hdtfile=$1
 mapping=$2
 outputfile=$3
