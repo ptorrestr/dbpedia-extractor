@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+source $DIR/aliases.env
+
 hdtSearch -q "? ? ?" $1 2> /dev/null\
-	| parallel --pipe cut -d \' \' -f1,3\
-	| parallel --pipe tr \' \' \'\\n\'\
-	| parallel --pipe sed -n '/^http/p'\
-	| sort -u\
-	|	lbzip2 -zc > $2
+	| parallel --pipe -j$(nproc) --round-robin --block 1M $DIR/clean_line\
+	| lbzip2 -zc > $2
