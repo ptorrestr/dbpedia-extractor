@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
-#source $ROOT/miniconda3/bin/activate hdtconnector
-
-hdtSearch -q "? ? ?" $1 2> /dev/null | lbzip2 -zc > $2
+hdtSearch -q "? ? ?" $1 2> /dev/null\
+	| parallel --pipe cut -d \' \' -f1,3\
+	| parallel --pipe tr \' \' \'\\n\'\
+	| parallel --pipe sed -n '/^http/p'\
+	| sort -u\
+	|	lbzip2 -zc > $2
