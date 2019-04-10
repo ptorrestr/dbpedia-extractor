@@ -17,7 +17,7 @@ awk_prog_1='{
   f=$1; s=$2; $1="";  $2="";
   gsub(/^[ \t]+/, "", $0);
   gsub(/\|/, " ", $0);
-  print f"|"s"|" $0 
+  print f"|"s"|" $0
 }'
 
 # Make sure the input is composed by triples exclusively. Print to stderr what
@@ -29,7 +29,7 @@ awk_prog_2='{
 
 # Tansform dbpedia urls to <dbpedia:xxx>
 awk_prog_3='{
-  gsub(p, "<dbpedia:", $1); 
+  gsub(p, "<dbpedia:", $1);
   a = gsub(p, "<dbpedia:", $3);
   if ( a > 0) { $3 = $3 ">" }
   print $1">|"$2"|"$3
@@ -37,8 +37,8 @@ awk_prog_3='{
 
 # Capture labels in the triple stream.
 awk_prog_4='{
-  if ($2 == l || $2 == n){ 
-    print $0 
+  if ($2 == l || $2 == n){
+    print $0
   }
 }'
 
@@ -53,3 +53,8 @@ get_name() {
     | cut --complement -d ":" -f1 \
     | tr -d '>'
 }
+
+# add symbols to triples when extracting
+awk_prog_6='{
+  print "<"$1">|<"$2">|<"$3">"
+}'
