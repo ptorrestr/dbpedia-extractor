@@ -13,6 +13,7 @@ mem="1G"
 
 
 # This program trim white spaces, remves '|' from objects and set '|' as the separator
+# Also, it remove newlines if necessary.
 # We cannot set OFS as it modifies $0 when printing output. We use variable 'se' to
 # define the separator
 awk_prog_1='
