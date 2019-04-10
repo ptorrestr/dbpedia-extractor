@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 source $DIR/aliases.env
+source $DIR/functions.sh
 temp_file_1=$(mktemp)
 
 lbzcat $1 \
-  | cut -d'|' -f2 \
+  | cut -d"$sep" -f2 \
   | LC_ALL=C sort -u --parallel=8 > $temp_file_1
 length_ids=$(wc -l < $temp_file_1)
 max_id=$(($length_ids - 1))
-paste -d'|' <(seq 0 $max_id) <(cat $temp_file_1) \
+paste -d"$sep" <(seq 0 $max_id) <(cat $temp_file_1) \
   | lbzip2 -zc > $2
 rm $temp_file_1

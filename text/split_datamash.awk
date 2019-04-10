@@ -1,3 +1,6 @@
+BEGIN{
+  OFS=FS;
+}
 {
   c = split($2, a, "@en");
   b = ""
@@ -7,5 +10,5 @@
     }
   }
   gsub(/^,/, "", b)
-  print $1"|"t"|["b"]"
+  print $1,t,"["b"]"
 }

@@ -1,3 +1,6 @@
+BEGIN{
+  OFS=FS;
+}
 {
   label = ""
   name = ""
@@ -20,5 +23,5 @@
   gsub("\";\"",";",label);
   label = substr(label, 2, length(label)-2)
   label = gensub(/(\"|\\)/,"\\\\\\0", "g", label)
-  print $1"|names|{\"label\":\""label"\",\"name\":\""name"\"}"
+  print $1,"names","{\"label\":\""label"\",\"name\":\""name"\"}"
 }

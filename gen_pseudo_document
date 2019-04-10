@@ -34,9 +34,9 @@ lbzcat $mapping \
   | get_name \
   | awk -v p=$prefix '{print p $0" ? ?"}' \
   | parallel --pipe -j$proc --round-robin hdtSearch $hdtfile 2>/dev/null \
-  | parallel --pipe -j$proc --round-robin awk -F \' \' \'$awk_prog_1 \' \
+  | parallel --pipe -j$proc --round-robin awk -F \' \' -v se=\'$sep\' \'$awk_prog_1 \' \
   | parallel --pipe -j$proc --round-robin awk -F \'$sep\' \'$awk_prog_2 \' 2> $er1 \
-  | parallel --pipe -j$proc --round-robin awk -F \'$sep\' -v p=$prefix \'$awk_prog_3 \' \
+  | parallel --pipe -j$proc --round-robin awk -F \'$sep\' -v s=\'$sep\' -v p=$prefix \'$awk_prog_3 \' \
   | lbzip2 -zc > $fd1
 
 # Classify triples and parse
@@ -56,7 +56,7 @@ lbzcat $fd1 \
   | lbzip2 -zc > $fd3
 
 # Classify categories and parse
-awk -F"$sep" 'NR==FNR {m[$1]=$3;next};{print $1"|"m[$3]"@en"}' \
+awk -F"$sep" -v s="$sep" 'BEGIN{OFS=s;} NR==FNR {m[$1]=$3;next};{print $1,m[$3]"@en"}' \
   <(lbzcat $fd2) <(lbzcat $fd1 | \
               parallel --pipe -j$proc2 --round-robin awk -F \"${sep}\" -v c=$category -f $DIR/text/classify_categories.awk ) \
   | LC_ALL=C sort -S$mem --parallel $proc -t"$sep" -k1,1 \
@@ -65,7 +65,7 @@ awk -F"$sep" 'NR==FNR {m[$1]=$3;next};{print $1"|"m[$3]"@en"}' \
   | lbzip2 -zc > $fd4
 
 # Classify similar and parse
-awk -F'|' 'NR==FNR {m[$1]=$3;next};{print $1"|"m[$3]"@en"}' \
+awk -F"$sep" -v s="$sep" 'BEGIN{OFS=s;} NR==FNR {m[$1]=$3;next};{print $1,m[$3]"@en"}' \
   <(lbzcat $fd2) <(lbzcat $fd1 | \
               parallel --pipe -j$proc2 --round-robin awk -F \"${sep}\" -v d=$disambiguates -v r=$redirects -v s=$sameas -f $DIR/text/classify_similar.awk ) \
   | LC_ALL=C sort -S$mem --parallel $proc -t"$sep" -k1,1 \
@@ -74,7 +74,7 @@ awk -F'|' 'NR==FNR {m[$1]=$3;next};{print $1"|"m[$3]"@en"}' \
   | lbzip2 -zc > $fd5
 
 # Classify related and parse
-awk -F'|' 'NR==FNR {m[$1]=$3;next};{print $1"|"$2"|"m[$3]"@en"}' \
+awk -F"$sep" -v s="$sep" 'BEGIN{OFS=s;} NR==FNR {m[$1]=$3;next};{print $1,$2,m[$3]"@en"}' \
   <(lbzcat $fd2) <(lbzcat $fd1 | \
               parallel --pipe -j$proc2 --round-robin awk -F \"${sep}\" -v c=$category -v s=$sameas -v r=$redirects -v d=$disambiguates -f $DIR/text/classify_related.awk ) \
   | LC_ALL=C sort -S$mem --parallel $proc -t"$sep" -k1,1 \

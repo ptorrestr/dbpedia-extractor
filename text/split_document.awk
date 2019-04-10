@@ -1,3 +1,6 @@
+BEGIN{
+  OFS=FS;
+}
 {
   c1 = split($2, a, ",")
   c2 = split($3, b, "@en")

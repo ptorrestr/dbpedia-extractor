@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+source $DIR/aliases.env
+source $DIR/functions.sh
 temp_file_1=$(mktemp)
 temp_file_2=$(mktemp)
 
-awk -F"|" 'NR==FNR {m[$2]=$1;next};{print m[$1]"|"m[$3]}' <(lbzcat $2) <(lbzcat $1) > $temp_file_1
-awk -F"|" 'NR==FNR {m[$2]=$1;next};{print m[$2]}' <(lbzcat $3) <(lbzcat $1) > $temp_file_2
+awk -F"$sep" -v s="$sep" 'BEGIN{OFS=s;} NR==FNR {m[$2]=$1;next};{print m[$1],m[$3]}' <(lbzcat $2) <(lbzcat $1) > $temp_file_1
+awk -F"$sep" 'NR==FNR {m[$2]=$1;next};{print m[$2]}' <(lbzcat $3) <(lbzcat $1) > $temp_file_2
 
-pr -mts'|' "$temp_file_1" "$temp_file_2" \
+pr -mts"$sep" "$temp_file_1" "$temp_file_2" \
   | lbzip2 -zc > $4
 rm $temp_file_1 $temp_file_2
