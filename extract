@@ -2,7 +2,9 @@
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 source $DIR/aliases.env
+source $DIR/functions.sh
 
 hdtSearch -q "? ? ?" $1 2> /dev/null\
 	| parallel --pipe -j$(nproc) --round-robin --block 1M $DIR/clean_line\
+	| parallel --pipe -j$(nproc) awk -F \'\|\' \'$awk_prog_6\'\
 	| lbzip2 -zc > $2
