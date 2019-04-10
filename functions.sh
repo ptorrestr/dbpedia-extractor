@@ -31,7 +31,13 @@ awk_prog_1='
   }
   f=$1; s=$2; $1=""; $2="";
   t=$0;
-}'
+}
+END{
+  gsub(/^[[:blank:]]+/, "", t);
+  gsub(/\|/, " ", t);
+  print f se s se t
+}
+'
 
 # Make sure the input is composed by triples exclusively. Print to stderr what
 # does not look like a triple.
