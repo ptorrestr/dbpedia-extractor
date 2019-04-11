@@ -4,7 +4,8 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 filters=$(cat "$DIR/filter.txt" | tr '\n' '|')
 source $DIR/functions.sh
 
-grep -vE '\"' \
+awk -F " " -v se=" " "$awk_prog_1"\
+  | grep -vE '\"' \
   | grep -vE $filters \
   | perl -lpe ';s/http:\/\/dbpedia.org\/resource\//dbpedia:/g' \
   | perl -lpe ";s/ /$sep/g"

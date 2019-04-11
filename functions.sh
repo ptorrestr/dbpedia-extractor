@@ -26,6 +26,7 @@ awk_prog_1='
       next;
     }
     gsub(/^[[:blank:]]+/, "", t);
+    gsub(/[[:blank:]]+/, " ", t);
     gsub(/\|/, " ", t);
     print f se s se t
   }
@@ -34,6 +35,7 @@ awk_prog_1='
 }
 END{
   gsub(/^[[:blank:]]+/, "", t);
+  gsub(/[[:blank:]]+/," ", t);
   gsub(/\|/, " ", t);
   print f se s se t
 }
